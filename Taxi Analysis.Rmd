@@ -55,16 +55,6 @@ head(taxi_2020_test)
 
 
 
-
-
-
-
-
-
-
-
-
-
 ```{r, message = FALSE, warning = FALSE}
 # Convert characters to dates
 taxi_2020_test$`Start Date` <- mdy(taxi_2020_test$`Start Date`)
