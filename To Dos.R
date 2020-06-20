@@ -3,6 +3,6 @@
 
 # TO DOs
 
-# Logisti regression (boolean column, drop NAs, what else?)
+# Logistic regression (boolean column, drop NAs, what else?)
 # Basic time series
 
