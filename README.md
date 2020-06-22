@@ -6,7 +6,11 @@ The detailed information about the UChicago COVID-19 Hackathon (June 19-21, 2020
 
 Team: MSCA Advisors
 
-![](https://i.ibb.co/XVXHXPX/9.png)
+![](https://i.ibb.co/KhP3xj2/9.png)
+
+_Devanshi Verma [devanshi@uchicago.edu](devanshi@uchicago.edu)_
+
+_Oleksiy Anokhin [anokhin@uchicago.edu](anokhin@uchicago.edu)_
 
 **Executive summary:**
 
@@ -17,7 +21,6 @@ We have conducted a research, analyzing taxi rides data, which allowed us to und
 We expect that this analysis allow the different stakeholders to develop mitigation mechanisms and allocate financial resources, while considering both policy objectives and the shareholder expectations.
 
 For our research we used data from Chicago Open Data Portal and conducted the exploratory data analysis together with building predictive models for further recommendations.
-
 
 ![](https://i.ibb.co/hCQFhBt/1.png)
 
@@ -40,3 +43,5 @@ The exploratory analysis of our team demonstrated the following **key findings**
 ![](https://i.ibb.co/Zm0FgSK/7.png)
 
 ![](https://i.ibb.co/JFZdtP8/8.png)
+
+![](https://i.ibb.co/0XbNYSk/10.png)
