@@ -44,4 +44,8 @@ The exploratory analysis of our team demonstrated the following **key findings**
 
 ![](https://i.ibb.co/JFZdtP8/8.png)
 
+![](https://i.ibb.co/4tK0Kb6/1.png)
+
+![](https://i.ibb.co/wWxJ991/2.png)
+
 ![](https://i.ibb.co/0XbNYSk/10.png)
