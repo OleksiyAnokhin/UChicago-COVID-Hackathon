@@ -1,0 +1,218 @@
+---
+title: "Logistic Regression Analysis"
+author: "Oleksiy Anokhin"
+date: "6/20/2020"
+output: html_document
+---
+
+Logistic regression allows us to estimate the probability of a categorical response based on one or more predictor variables (X). It allows one to say that the presence of a predictor increases (or decreases) the probability of a given outcome by a specific percentage. This tutorial covers the case when Y is binary — that is, where it can take only two values, “0” and “1”, which represent outcomes such as pass/fail, win/lose, alive/dead or healthy/sick.
+
+Inspiration: [http://uc-r.github.io/logistic_regression](http://uc-r.github.io/logistic_regression)
+
+In this case I use the logistic regression, trying to predict the tipping behavior (yes/no for tip) of Chicago taxi customers as a part of our UChicago MScA Hackathon.
+
+My research question: predict the maximum likeliyhood of a tip to a taxi driver. 
+
+```{r, message = FALSE, warning = FALSE}
+# Install packages
+library(tidyverse)
+library(caret)
+library(modelr)     
+library(broom) 
+library(ROCR)
+library(pscl)
+library(car)
+library(ROCR)
+library(plotROC)
+```
+
+```{r, message = FALSE, warning = FALSE}
+# Read data as .rds
+taxi_data <- readRDS("taxi_dataset.rds")
+```
+
+```{r, message = FALSE, warning = FALSE}
+# View basic information about our dataset
+head(taxi_data)
+dim(taxi_data) # 4137294 rows, 6 columns
+names(taxi_data)
+```
+```{r, message = FALSE, warning = FALSE}
+taxi_data <- taxi_data %>% mutate(Payment = ifelse(taxi_data$`Payment Type` == "Cash", 1, 0))
+# This is an interesting variable, suggested by my team member Devanshi Verma, who discussed the importance of the Payment Type for the prediction.
+```
+
+```{r, message = FALSE, warning = FALSE}
+# Calculate all NAs in our dataset
+taxi_data %>% summarise_all(funs(sum(is.na(.))))
+```
+
+
+```{r, message = FALSE, warning = FALSE}
+# Drop all NAs
+taxi_data_clean <- taxi_data %>% drop_na()
+dim(taxi_data_clean) # 4135918  
+# AS you can see, we lost only 1400 rows approximately.
+```
+
+```{r, message = FALSE, warning = FALSE}
+# Double check all NAs
+taxi_data_clean %>% summarise_all(funs(sum(is.na(.))))
+```
+```{r, message = FALSE, warning = FALSE}
+# Compare the amount of 1 and 0
+table(taxi_data_clean$Tip_result)
+# AS you can see, we have a descent situation.
+# 1869644 gave tips, 2266274 did not give tips. The ratio is about 40%/60%
+```
+
+```{r, message = FALSE, warning = FALSE}
+# Separate data into train and test - 80% and 20%
+sample <- floor(0.8 * nrow(taxi_data_clean))
+train_samples <- sample.int(n = nrow(taxi_data_clean), size = sample)
+train <- taxi_data_clean[train_samples, ]
+test <- taxi_data_clean[-train_samples, ]
+```
+
+```{r, message = FALSE, warning = FALSE}
+# Check results
+head(train)
+dim(train) # 3308734
+head(test)
+dim(test) # 827184
+```
+
+The `glm` function fits generalized linear models, a class of models that includes logistic regression. The syntax of the `glm` function is similar to that of `lm`, except that we must pass the argument `family = binomial` in order to tell R to run a logistic regression rather than some other type of generalized linear model.
+
+```{r, message = FALSE, warning = FALSE}
+# Create a model with 3 independent variables
+model1 <- glm(Tip_result ~ `Trip Seconds` + `Trip Miles` + Fare + Payment, data = train, family = binomial(link = "logit"))
+summary(model1)
+
+# In the background the glm, uses maximum likelihood to fit the model. 
+
+# Deviance is analogous to the sum of squares calculations in linear regression and is a measure of the lack of fit to the data in a logistic regression model. The null deviance represents the difference between a model with only the intercept (which means “no predictors”) and a saturated model (a model with a theoretically perfect fit). The goal is for the model deviance (noted as Residual deviance) to be lower; smaller values indicate better fit. In this respect, the null model provides a baseline upon which to compare predictor models.
+
+# Likelihood is the probability of your data given parameters. 
+
+# You want to make it as big as possible. Deviance measures to the distance between data and fit. You want to make it as small as possible.
+
+# More precisely, the deviance is –2 times the difference between log likelihoods for your fitted model and for a “fully saturated” model where you have as many parameters as observations. 
+
+# As we can see, our deviance is far from a null model.
+```
+
+```{r, message = FALSE, warning = FALSE}
+# Tidy results
+tidy(model1)
+# In estimate we can see how the probability to get a tip increases/decreases based on changes of 1 unit of estimate. 
+```
+
+```{r, message = FALSE, warning = FALSE}
+# We can check coefficients additionally
+exp(coef(model1))
+```
+
+```{r, message = FALSE, warning = FALSE}
+# Check confidence intervals
+confint.default(model1)
+```
+
+```{r, message = FALSE, warning = FALSE}
+# In the case of multiple predictor variables sometimes we want to understand which variable is the most influential in predicting the response (Y) variable. We can do this with varImp from the `caret` package.
+caret::varImp(model1)
+# Payment is super important here
+```
+
+```{r, message = FALSE, warning = FALSE}
+# Predict
+new.df <- tibble(`Trip Miles` = 20, Fare = 30, `Trip Seconds` = 1200, Payment = 0)
+predict(model1, new.df, type = "response")
+
+# Thus, we see that for the number of miles, seconds, and the fare by a credit card (as 0) the probability will be very high. 
+```
+
+```{r, message = FALSE, warning = FALSE}
+# Check multicollinearity
+vif(model1)
+```
+
+```{r, message = FALSE, warning = FALSE}
+# Create a model with only three independent variables
+model2 <- glm(Tip_result ~ `Trip Seconds` + `Trip Miles` + Fare, data = train, family = binomial(link = "logit"))
+summary(model2)
+```
+
+```{r, message = FALSE, warning = FALSE}
+# Likelihood Ratio Test
+# First, we can use a Likelihood Ratio Test to assess if our models are improving the fit. Adding predictor variables to a model will almost always improve the model fit (i.e. increase the log likelihood and reduce the model deviance compared to the null deviance), but it is necessary to test whether the observed difference in model fit is statistically significant. We can use anova to perform this test. 
+
+# ANOVA
+anova(model1, model2, test = "Chisq")
+
+# We can see that model 1 predicts much better and if we remove the Payment predictor, our residual deviance increases and this change is statistically significant.
+```
+
+```{r, message = FALSE, warning = FALSE}
+# Pseudo R^2
+
+# Unlike linear regression with ordinary least squares estimation, there is no R^2 statistic which explains the proportion of variance in the dependent variable that is explained by the predictors. However, there are a number of pseudo R^2 metrics that could be of value. Most notable is McFadden’s R^2. In this case R^2 = 0.4 presents a very good fit, because models rarely achieve a high R^2 here.
+list(model1 = pscl::pR2(model1)["McFadden"],
+     model2 = pscl::pR2(model2)["McFadden"])
+# AS we can see, out value for model 1 is very high
+```
+
+```{r, message = FALSE, warning = FALSE}
+# Residual Assessment
+# Keep in mind that logistic regression does not assume the residuals are normally distributed nor that the variance is constant. However, the deviance residual is useful for determining if individual points are not well fit by the model. Here we can fit the standardized deviance residuals to see how many exceed 3 standard deviations. First we extract several useful bits of model results with augment and then proceed to plot.
+
+# model1_data <- augment(model1) %>% 
+#   mutate(index = 1:n())
+# 
+# ggplot(model1_data, aes(index, .std.resid, color = Tip_result)) + 
+#   geom_point(alpha = .5) +
+#   geom_ref_line(h = 3)
+```
+
+
+
+```{r, message = FALSE, warning = FALSE}
+# Validation of Predicted Values
+# Classification Rate
+
+# When developing models for prediction, the most critical metric is regarding how well the model does in predicting the target variable on out-of-sample observations. First, we need to use the estimated models to predict values on our training data set (train). When using predict be sure to include type = response so that the prediction returns the probability of default.
+test.predicted.m1 <- predict(model1, newdata = test, type = "response")
+test.predicted.m2 <- predict(model2, newdata = test, type = "response")
+```
+
+```{r, message = FALSE, warning = FALSE}
+# Now we can compare the predicted target variable versus the observed values for each model and see which performs the best. We can start by using the confusion matrix, which is a table that describes the classification performance for each model on the test data. Each quadrant of the table has an important meaning. In this case the “No” and “Yes” in the rows represent whether drivers got tips or not. The “FALSE” and “TRUE” in the columns represent whether we predicted the tip or not. 
+
+# true positives (Bottom-right quadrant): these are cases in which we predicted the customer would tip and they did.
+# true negatives (Top-left quadrant): We predicted no tip, and the customer did not tip.
+# false positives (Top-right quadrant): We predicted yes, but they didn’t actually tip. (Also known as a “Type I error.”)
+# false negatives (Bottom-left): We predicted no, but they did tip. (Also known as a “Type II error.”)
+list(
+  model1 = table(test$Tip_result, test.predicted.m1 > 0.5) %>% prop.table() %>% round(3),
+  model2 = table(test$Tip_result, test.predicted.m2 > 0.5) %>% prop.table() %>% round(3))
+# WE can see that model 1 is doing pretty good. We have zero false negative, no Type II error. Type 1 is pretty low too. 
+```
+
+```{r, message = FALSE, warning = FALSE}
+# Plot ROC
+
+# The receiving operating characteristic (ROC) is a visual measure of classifier performance. Using the proportion of positive data points that are correctly considered as positive and the proportion of negative data points that are mistakenly considered as positive, we generate a graphic that shows the trade off between the rate at which you can correctly predict something with the rate of incorrectly predicting something. Ultimately, we’re concerned about the area under the ROC curve, or AUC. That metric ranges from 0.50 to 1.00, and values above 0.80 indicate that the model does a good job in discriminating between the two categories which comprise our target variable. 
+
+par(mfrow=c(1, 2))
+
+prediction(test.predicted.m1, test$Tip_result) %>%
+  performance(measure = "tpr", x.measure = "fpr") %>%
+  plot()
+
+prediction(test.predicted.m2, test$Tip_result) %>%
+  performance(measure = "tpr", x.measure = "fpr") %>%
+  plot()
+```
+
+
+
