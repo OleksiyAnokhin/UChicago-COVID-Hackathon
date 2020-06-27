@@ -11,7 +11,7 @@ Inspiration: [http://uc-r.github.io/logistic_regression](http://uc-r.github.io/l
 
 In this case I use the logistic regression, trying to predict the tipping behavior (yes/no for tip) of Chicago taxi customers as a part of our UChicago MScA Hackathon.
 
-My research question: predict the maximum likeliyhood of a tip to a taxi driver. 
+My research question: predict the maximum likeliihood of a tip to a taxi driver. 
 
 ```{r, message = FALSE, warning = FALSE}
 # Install packages
